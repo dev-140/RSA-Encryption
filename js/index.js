@@ -89,17 +89,6 @@ function generateKeys() {
   document.getElementById("privateKey").textContent = `d: ${d}, n: ${n}`;
 }
 
-function chunkString(str, size) {
-  const numChunks = Math.ceil(str.length / size);
-  const chunks = new Array(numChunks);
-
-  for (let i = 0, o = 0; i < numChunks; ++i, o += size) {
-    chunks[i] = str.substr(o, size);
-  }
-
-  return chunks;
-}
-
 function encrypt() {
   clearLog();
   const message = document.getElementById("message").value;
@@ -124,21 +113,22 @@ function encrypt() {
   logProcess(`ASCII values: ${numbers.join(", ")}`);
 
   // Encrypt each number
-  const encrypted = numbers.map((num) => {
+  const encrypted = [];
+  numbers.forEach((num) => {
     const enc = modPow(num, publicKey.e, n);
-    logProcess(`Encrypting ${num} → ${enc}`);
-    return enc;
+    encrypted.push(enc);
+    logProcess(`Encrypting ASCII ${num} → Encrypted: ${enc}`);
   });
 
-  // Log the full array of encrypted values
-  logProcess(`All encrypted values: ${encrypted.join(", ")}`);
+  // Create final Base64 string for all encrypted values
+  const concatenatedEncrypted = encrypted.join(","); // Comma-separated encrypted values
+  logProcess(`Concatenated encrypted values: ${concatenatedEncrypted}`);
 
-  // Convert to Base64 for easier display
-  const encryptedStr = btoa(encrypted.join(","));
+  const encryptedStr = btoa(concatenatedEncrypted); // Final Base64 string
   document.getElementById("encryptedMessage").textContent = encryptedStr;
-  logProcess("Encryption complete!");
 
-  console.log(encrypted);
+  logProcess(`Final Encrypted Base64 string: ${encryptedStr}`);
+  logProcess("Encryption complete!");
 }
 
 function decrypt() {
