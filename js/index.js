@@ -56,102 +56,180 @@ function modPow(base, exponent, modulus) {
 }
 
 function generateKeys() {
-  clearLog();
-  const p = parseInt(document.getElementById("p").value);
-  const q = parseInt(document.getElementById("q").value);
+  try {
+    clearLog();
+    const p = parseInt(document.getElementById("p").value);
+    const q = parseInt(document.getElementById("q").value);
 
-  if (!p || !q) {
-    alert("Please enter valid prime numbers");
-    return;
+    if (!p || !q) {
+      alert("Please enter valid prime numbers");
+      return;
+    }
+
+    logProcess(`Using prime numbers: p=${p}, q=${q}`);
+
+    n = p * q;
+    const phi = (p - 1) * (q - 1);
+    logProcess(`Calculating n = p × q = ${n}`);
+    logProcess(`Calculating φ(n) = (p-1) × (q-1) = ${phi}`);
+
+    let e = 65537;
+    while (e < phi) {
+      if (gcd(e, phi) === 1) break;
+      e++;
+    }
+    logProcess(`Choosing public exponent e = ${e}`);
+
+    const d = modInverse(e, phi);
+    logProcess(`Calculating private exponent d = ${d}`);
+
+    publicKey = { e, n };
+    privateKey = { d, n };
+
+    document.getElementById("publicKey").textContent = `e: ${e}, n: ${n}`;
+    document.getElementById("privateKey").textContent = `d: ${d}, n: ${n}`;
+  } catch (error) {
+    alert("An error occurred while generating keys: " + error.message);
+    console.error(error);
   }
-
-  logProcess(`Using prime numbers: p=${p}, q=${q}`);
-
-  n = p * q;
-  const phi = (p - 1) * (q - 1);
-  logProcess(`Calculating n = p × q = ${n}`);
-  logProcess(`Calculating φ(n) = (p-1) × (q-1) = ${phi}`);
-
-  let e = 65537;
-  while (e < phi) {
-    if (gcd(e, phi) === 1) break;
-    e++;
-  }
-  logProcess(`Choosing public exponent e = ${e}`);
-
-  const d = modInverse(e, phi);
-  logProcess(`Calculating private exponent d = ${d}`);
-
-  publicKey = { e, n };
-  privateKey = { d, n };
-
-  document.getElementById("publicKey").textContent = `e: ${e}, n: ${n}`;
-  document.getElementById("privateKey").textContent = `d: ${d}, n: ${n}`;
 }
 
 function encrypt() {
-  clearLog();
-  const message = document.getElementById("message").value;
-  if (!message) {
-    alert("Please enter a message to encrypt");
-    return;
+  try {
+    clearLog();
+    const message = document.getElementById("message").value;
+    if (!message) {
+      alert("Please enter a message to encrypt");
+      return;
+    }
+
+    if (!publicKey.e) {
+      alert("Please generate keys first");
+      return;
+    }
+
+    logProcess("Starting encryption process...");
+    logProcess(`Original message: "${message}"`);
+
+    // Convert text to numbers (ASCII)
+    const numbers = [];
+    for (let i = 0; i < message.length; i++) {
+      numbers.push(message.charCodeAt(i));
+    }
+    logProcess(`ASCII values: ${numbers.join(", ")}`);
+
+    // Encrypt each number
+    const encrypted = [];
+    numbers.forEach((num) => {
+      const enc = modPow(num, publicKey.e, n);
+      encrypted.push(enc);
+      logProcess(`Encrypting ASCII ${num} → Encrypted: ${enc}`);
+    });
+
+    // Create final Base64 string for all encrypted values
+    const concatenatedEncrypted = encrypted.join(","); // Comma-separated encrypted values
+    logProcess(`Concatenated encrypted values: ${concatenatedEncrypted}`);
+
+    const encryptedStr = btoa(concatenatedEncrypted); // Final Base64 string
+    document.getElementById("encryptedMessage").textContent = encryptedStr;
+
+    logProcess(`Final Encrypted Base64 string: ${encryptedStr}`);
+    logProcess("Encryption complete!");
+  } catch (error) {
+    alert("An error occurred during encryption: " + error.message);
+    console.error(error);
   }
-
-  if (!publicKey.e) {
-    alert("Please generate keys first");
-    return;
-  }
-
-  logProcess("Starting encryption process...");
-  logProcess(`Original message: "${message}"`);
-
-  // Convert text to numbers (ASCII)
-  const numbers = [];
-  for (let i = 0; i < message.length; i++) {
-    numbers.push(message.charCodeAt(i));
-  }
-  logProcess(`ASCII values: ${numbers.join(", ")}`);
-
-  // Encrypt each number
-  const encrypted = [];
-  numbers.forEach((num) => {
-    const enc = modPow(num, publicKey.e, n);
-    encrypted.push(enc);
-    logProcess(`Encrypting ASCII ${num} → Encrypted: ${enc}`);
-  });
-
-  // Create final Base64 string for all encrypted values
-  const concatenatedEncrypted = encrypted.join(","); // Comma-separated encrypted values
-  logProcess(`Concatenated encrypted values: ${concatenatedEncrypted}`);
-
-  const encryptedStr = btoa(concatenatedEncrypted); // Final Base64 string
-  document.getElementById("encryptedMessage").textContent = encryptedStr;
-
-  logProcess(`Final Encrypted Base64 string: ${encryptedStr}`);
-  logProcess("Encryption complete!");
 }
 
 function decrypt() {
-  clearLog();
-  const encryptedStr = document.getElementById("encryptedMessage").textContent;
-  if (encryptedStr === "-") {
-    alert("Please encrypt a message first");
-    return;
+  try {
+    clearLog();
+    const encryptedStr =
+      document.getElementById("encryptedMessage").textContent;
+    if (encryptedStr === "-") {
+      alert("Please encrypt a message first");
+      return;
+    }
+
+    logProcess("Starting decryption process...");
+
+    // Convert from Base64 and split into numbers
+    const encrypted = atob(encryptedStr).split(",").map(Number);
+
+    // Decrypt each number
+    const decrypted = encrypted.map((num) => {
+      const dec = modPow(num, privateKey.d, n);
+      logProcess(`Decrypting ${num} → ${dec} (${String.fromCharCode(dec)})`);
+      return String.fromCharCode(dec);
+    });
+
+    const decryptedMessage = decrypted.join("");
+    document.getElementById("decryptedMessage").textContent = decryptedMessage;
+    logProcess(`Decryption complete! Message: "${decryptedMessage}"`);
+  } catch (error) {
+    alert("An error occurred during decryption: " + error.message);
+    console.error(error);
   }
+}
 
-  logProcess("Starting decryption process...");
+// Save Encrypted Message as a File
+function saveEncryptedFile() {
+  try {
+    const encryptedMessage =
+      document.getElementById("encryptedMessage").textContent;
+    if (encryptedMessage === "-") {
+      alert("Please encrypt a message first");
+      return;
+    }
 
-  // Convert from Base64 and split into numbers
-  const encrypted = atob(encryptedStr).split(",").map(Number);
+    const blob = new Blob([encryptedMessage], { type: "text/plain" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "encrypted_message.txt";
+    link.click();
+  } catch (error) {
+    alert(
+      "An error occurred while saving the encrypted file: " + error.message
+    );
+    console.error(error);
+  }
+}
 
-  // Decrypt each number
-  const decrypted = encrypted.map((num) => {
-    const dec = modPow(num, privateKey.d, n);
-    logProcess(`Decrypting ${num} → ${dec} (${String.fromCharCode(dec)})`);
-    return String.fromCharCode(dec);
-  });
+// Decrypt from uploaded file
+function decryptFromFile() {
+  try {
+    const fileInput = document.getElementById("encryptedFile");
+    const file = fileInput.files[0];
+    if (!file) {
+      alert("Please upload a file first");
+      return;
+    }
 
-  const decryptedMessage = decrypted.join("");
-  document.getElementById("decryptedMessage").textContent = decryptedMessage;
-  logProcess(`Decryption complete! Message: "${decryptedMessage}"`);
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const encryptedStr = e.target.result;
+      document.getElementById("encryptedMessage").textContent = encryptedStr;
+
+      logProcess("Starting decryption process...");
+
+      // Convert from Base64 and split into numbers
+      const encrypted = atob(encryptedStr).split(",").map(Number);
+
+      // Decrypt each number
+      const decrypted = encrypted.map((num) => {
+        const dec = modPow(num, privateKey.d, n);
+        logProcess(`Decrypting ${num} → ${dec} (${String.fromCharCode(dec)})`);
+        return String.fromCharCode(dec);
+      });
+
+      const decryptedMessage = decrypted.join("");
+      document.getElementById("decryptedMessage").textContent =
+        decryptedMessage;
+      logProcess(`Decryption complete! Message: "${decryptedMessage}"`);
+    };
+    reader.readAsText(file);
+  } catch (error) {
+    alert("An error occurred while decrypting the file: " + error.message);
+    console.error(error);
+  }
 }

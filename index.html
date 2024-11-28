@@ -99,17 +99,30 @@
               <h3 class="font-medium mb-2">Encrypted Message (Base64)</h3>
               <p id="encryptedMessage" class="font-mono break-all">-</p>
             </div>
+            <!-- Save Encrypted File Button -->
+            <button
+              onclick="saveEncryptedFile()"
+              class="mt-4 bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600"
+            >
+              Save Encrypted File
+            </button>
           </div>
         </div>
 
-        <!-- Decryption Section -->
+        <!-- File Upload Section -->
         <div>
-          <h2 class="text-xl font-semibold mb-4">Step 4: Decryption</h2>
+          <h2 class="text-xl font-semibold mb-4">Step 4: Decrypt from File</h2>
+          <input
+            type="file"
+            id="encryptedFile"
+            class="mb-4 p-2 border rounded"
+            accept=".txt"
+          />
           <button
-            onclick="decrypt()"
+            onclick="decryptFromFile()"
             class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600"
           >
-            Decrypt
+            Decrypt File
           </button>
           <div class="mt-4 bg-gray-50 p-4 rounded">
             <h3 class="font-medium mb-2">Decrypted Message</h3>
